@@ -36,8 +36,8 @@ module SitemapGenerator
           path = sitemap.location.path_in_public
         end
 
-        SitemapGenerator::Utilities.assert_valid_keys(options, :priority, :changefreq, :lastmod, :expires, :host, :images, :video, :news, :videos, :mobile, :alternate, :alternates, :pagemap)
-        SitemapGenerator::Utilities.reverse_merge!(options, :priority => 0.5, :changefreq => 'weekly', :lastmod => Time.now, :images => [], :news => {}, :videos => [], :mobile => false, :alternates => [])
+        SitemapGenerator::Utilities.assert_valid_keys(options, :priority, :changefreq, :lastmod, :expires, :host, :images, :video, :geo, :news, :videos, :mobile, :alternate, :alternates, :pagemap, :ovs_videos)
+        SitemapGenerator::Utilities.reverse_merge!(options, :priority => 0.5, :changefreq => 'weekly', :lastmod => Time.now, :images => [], :news => {}, :videos => [], :mobile => false, :alternates => [], :ovs_videos => [])
         raise "Cannot generate a url without a host" unless SitemapGenerator::Utilities.present?(options[:host])
 
         if video = options.delete(:video)
@@ -61,7 +61,8 @@ module SitemapGenerator
           :videos     => options[:videos],
           :mobile     => options[:mobile],
           :alternates => options[:alternates],
-          :pagemap    => options[:pagemap]
+          :pagemap    => options[:pagemap],
+          :ovs_videos => options[:ovs_videos]
         )
       end
 
@@ -99,6 +100,12 @@ module SitemapGenerator
               builder.image :geo_location, image[:geo_location].to_s   if image[:geo_location]
               builder.image :title, image[:title].to_s                 if image[:title]
               builder.image :license, image[:license].to_s             if image[:license]
+            end
+          end
+
+          self[:ovs_videos].each do |ovs_video|
+            builder.ovs :video do
+              builder.ovs :feed, ovs_video[:feed]
             end
           end
 
