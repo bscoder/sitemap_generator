@@ -8,7 +8,7 @@ module SitemapGenerator
     @@new_location_opts = [:filename, :sitemaps_path, :namer]
 
     attr_reader :default_host, :sitemaps_path, :filename, :create_index
-    attr_accessor :include_root, :include_index, :adapter, :yield_sitemap
+    attr_accessor :include_root, :include_index, :adapter, :yield_sitemap, :max_sitemap_links
     attr_writer :verbose
 
     # Create a new sitemap index and sitemap files.  Pass a block with calls to the following
@@ -112,7 +112,10 @@ module SitemapGenerator
     #   file in the group will not be compressed, the rest will).  So if you require different behaviour for your
     #   groups, pass in a `:compress` option e.g. <tt>group(:compress => false) { add('/link') }</tt>
     #
-    # KJV: When adding a new option be sure to include it in `options_for_group()` if
+    # * <tt>:max_sitemap_links</tt> - The maximum number of links to put in each sitemap.
+    #   Default is `SitemapGenerator::MAX_SITEMAPS_LINKS`, or 50,000.
+    #
+    # Note: When adding a new option be sure to include it in `options_for_group()` if
     # the option should be inherited by groups.
     def initialize(options={})
       options = SitemapGenerator::Utilities.reverse_merge(options,
@@ -121,10 +124,11 @@ module SitemapGenerator
         :filename => :sitemap,
         :search_engines => {
           :google         => "http://www.google.com/webmasters/tools/ping?sitemap=%s",
-          :bing           => "http://www.bing.com/webmaster/ping.aspx?siteMap=%s"
+          :bing           => "http://www.bing.com/ping?sitemap=%s"
         },
         :create_index => :auto,
-        :compress => true
+        :compress => true,
+        :max_sitemap_links => SitemapGenerator::MAX_SITEMAP_LINKS
       )
       options.each_pair { |k, v| instance_variable_set("@#{k}".to_sym, v) }
 
@@ -213,6 +217,7 @@ module SitemapGenerator
         @sitemap.location.merge!(@group.sitemap_location)
         if block_given?
           @group.interpreter.eval(:yield_sitemap => @yield_sitemap || SitemapGenerator.yield_sitemap?, &block)
+          @group.finalize_sitemap!
           @sitemap.location.merge!(@original_location)
         end
       else
@@ -397,8 +402,9 @@ module SitemapGenerator
       )
       opts.delete(:public_path)
 
-      # Reverse merge the current settings
-      # KJV: This hash could be a problem because it needs to be maintained
+      # Reverse merge the current settings.
+      #
+      # This hash could be a problem because it needs to be maintained
       # when new options are added, but can easily be missed.  We really could
       # do with a separate SitemapOptions class.
       current_settings = [
@@ -411,11 +417,11 @@ module SitemapGenerator
         :default_host,
         :adapter,
         :create_index,
-        :compress
+        :compress,
+        :max_sitemap_links
       ].inject({}) do |hash, key|
-        if !(value = instance_variable_get(:"@#{key}")).nil?
-          hash[key] = value
-        end
+        value = instance_variable_get(:"@#{key}")
+        hash[key] = value unless value.nil?
         hash
       end
       SitemapGenerator::Utilities.reverse_merge!(opts, current_settings)
@@ -425,13 +431,14 @@ module SitemapGenerator
     # Add default links if those options are turned on.  Record the fact that we have done so
     # in an instance variable.
     def add_default_links
+      @added_default_links = true
+      link_options = { :lastmod => Time.now, :changefreq => 'always', :priority => 1.0 }
       if include_root?
-        sitemap.add('/', :lastmod => Time.now, :changefreq => 'always', :priority => 1.0, :host => @default_host)
+        add('/', link_options)
       end
       if include_index?
-        sitemap.add(sitemap_index, :lastmod => Time.now, :changefreq => 'always', :priority => 1.0)
+        add(sitemap_index, link_options)
       end
-      @added_default_links = true
     end
 
     # Finalize a sitemap by including it in the index and outputting a summary line.
@@ -570,7 +577,8 @@ module SitemapGenerator
           :sitemaps_path => @sitemaps_path,
           :adapter => @adapter,
           :verbose => verbose,
-          :compress => @compress
+          :compress => @compress,
+          :max_sitemap_links => max_sitemap_links
         )
       end
 

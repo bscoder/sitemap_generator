@@ -12,14 +12,14 @@ class SitemapGenerator::BigDecimal < BigDecimal
   YAML_TAG = 'tag:yaml.org,2002:float'
   YAML_MAPPING = { 'Infinity' => '.Inf', '-Infinity' => '-.Inf', 'NaN' => '.NaN' }
 
-  yaml_as YAML_TAG
+  yaml_tag YAML_TAG
 
   # This emits the number without any scientific notation.
   # This is better than self.to_f.to_s since it doesn't lose precision.
   #
   # Note that reconstituting YAML floats to native floats may lose precision.
   def to_yaml(opts = {})
-    return super if defined?(YAML::ENGINE) && !YAML::ENGINE.syck?
+    return super unless defined?(YAML::ENGINE) && YAML::ENGINE.syck?
 
     YAML.quick_emit(nil, opts) do |out|
       string = to_s

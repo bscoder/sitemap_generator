@@ -1,20 +1,20 @@
-require 'sitemap_generator/sitemap_namer'
+require 'sitemap_generator/simple_namer'
 require 'sitemap_generator/builder'
 require 'sitemap_generator/link_set'
 require 'sitemap_generator/templates'
 require 'sitemap_generator/utilities'
 require 'sitemap_generator/application'
-require 'sitemap_generator/adapters'
 require 'sitemap_generator/sitemap_location'
 
 module SitemapGenerator
-  autoload(:Interpreter, 'sitemap_generator/interpreter')
-  autoload(:FileAdapter, 'sitemap_generator/adapters/file_adapter')
-  autoload(:S3Adapter,   'sitemap_generator/adapters/s3_adapter')
-  autoload(:WaveAdapter, 'sitemap_generator/adapters/wave_adapter')
-  autoload(:FogAdapter,  'sitemap_generator/adapters/fog_adapter')
-  autoload(:BigDecimal,  'sitemap_generator/core_ext/big_decimal')
-  autoload(:Numeric,     'sitemap_generator/core_ext/numeric')
+  autoload(:Interpreter,   'sitemap_generator/interpreter')
+  autoload(:FileAdapter,   'sitemap_generator/adapters/file_adapter')
+  autoload(:S3Adapter,     'sitemap_generator/adapters/s3_adapter')
+  autoload(:AwsSdkAdapter, 'sitemap_generator/adapters/aws_sdk_adapter')
+  autoload(:WaveAdapter,   'sitemap_generator/adapters/wave_adapter')
+  autoload(:FogAdapter,    'sitemap_generator/adapters/fog_adapter')
+  autoload(:BigDecimal,    'sitemap_generator/core_ext/big_decimal')
+  autoload(:Numeric,       'sitemap_generator/core_ext/numeric')
 
   SitemapError          = Class.new(StandardError)
   SitemapFullError      = Class.new(SitemapError)
@@ -26,9 +26,8 @@ module SitemapGenerator
     MAX_SITEMAP_LINKS    = 50_000        # max links per sitemap
     MAX_SITEMAP_IMAGES   = 1_000         # max images per url
     MAX_SITEMAP_NEWS     = 1_000         # max news sitemap per index_file
-    MAX_SITEMAP_FILESIZE = 10_000_000    # bytes
+    MAX_SITEMAP_FILESIZE = 50_000_000    # bytes
     SCHEMAS = {
-      'geo'     => 'http://www.google.com/geo/schemas/sitemap/1.0',
       'image'   => 'http://www.google.com/schemas/sitemap-image/1.1',
       'mobile'  => 'http://www.google.com/schemas/sitemap-mobile/1.0',
       'news'    => 'http://www.google.com/schemas/sitemap-news/0.9',
@@ -83,4 +82,4 @@ module SitemapGenerator
   self.app       = SitemapGenerator::Application.new
 end
 
-require 'sitemap_generator/railtie' if SitemapGenerator.app.rails3?
+require 'sitemap_generator/railtie' if SitemapGenerator.app.is_at_least_rails3?
