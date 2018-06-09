@@ -37,6 +37,7 @@ module SitemapGenerator
               xmlns:news="#{SitemapGenerator::SCHEMAS['news']}"
               xmlns:mobile="#{SitemapGenerator::SCHEMAS['mobile']}"
               xmlns:pagemap="#{SitemapGenerator::SCHEMAS['pagemap']}"
+              xmlns:ovs="http://webmaster.yandex.ru/schemas/video"
               xmlns:xhtml="http://www.w3.org/1999/xhtml"
             >
         HTML
